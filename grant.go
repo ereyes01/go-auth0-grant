@@ -42,6 +42,7 @@ func NewGrant(tokenURL string, credRequest *CredentialsRequest) Grant {
 	return &grantRequest{
 		tokenURL:    tokenURL,
 		credRequest: credRequest,
+		nowFn:       time.Now,
 	}
 }
 
