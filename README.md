@@ -19,7 +19,7 @@ import "github.com/ereyes01/go-auth0-grant"
 
 func someFunc() {
   // URL for the grant request is https://<your-auth0-domain>/oauth/token/
-  grant := auth0grant.NewGrant("https://myapp.auth0.com/oauth/token/", &auth0grant.CredentialsRequest{
+  grant := auth0grant.NewGrant("https://myapp.auth0.com/oauth/token/", auth0grant.CredentialsRequest{
     ClientID:     "my-app-id",
     ClientSecret: "my-app-secret",
     Audience:     "https://my-api.myapp.com/",
