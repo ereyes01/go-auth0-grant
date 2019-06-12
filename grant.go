@@ -19,10 +19,6 @@ type CredentialsRequest struct {
 
 const CLIENT_CREDS_GRANT_TYPE = "client_credentials"
 
-type Grant interface {
-	GetAccessToken() (string, error)
-}
-
 type clientCredsGrant struct {
 	AccessToken string        `json:"access_token"`
 	Scope       string        `json:"scope"`
@@ -30,23 +26,23 @@ type clientCredsGrant struct {
 	TokenType   string        `json:"token_type"`
 }
 
-type grantRequest struct {
+type Grant struct {
 	grant       *clientCredsGrant
 	issuedAt    time.Time
 	tokenURL    string
-	credRequest *CredentialsRequest
+	credRequest CredentialsRequest
 	nowFn       func() time.Time
 }
 
-func NewGrant(tokenURL string, credRequest *CredentialsRequest) Grant {
-	return &grantRequest{
+func NewGrant(tokenURL string, credRequest CredentialsRequest) *Grant {
+	return &Grant{
 		tokenURL:    tokenURL,
 		credRequest: credRequest,
 		nowFn:       time.Now,
 	}
 }
 
-func (g *grantRequest) GetAccessToken() (string, error) {
+func (g *Grant) GetAccessToken() (string, error) {
 	if g.needsRenew() {
 		if err := g.renewGrant(); err != nil {
 			return "", errors.Wrap(err, "renew grant")
@@ -56,7 +52,7 @@ func (g *grantRequest) GetAccessToken() (string, error) {
 	return g.grant.AccessToken, nil
 }
 
-func (g *grantRequest) renewGrant() error {
+func (g *Grant) renewGrant() error {
 	payload, err := json.Marshal(g.credRequest)
 	if err != nil {
 		return errors.Wrap(err, "json encode cred request")
@@ -86,7 +82,7 @@ func (g *grantRequest) renewGrant() error {
 	return nil
 }
 
-func (g *grantRequest) needsRenew() bool {
+func (g *Grant) needsRenew() bool {
 	if g.grant == nil {
 		return true
 	}

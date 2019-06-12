@@ -92,12 +92,6 @@ func (s *testGrantServer) handler(w http.ResponseWriter, r *http.Request) {
 	s.ncalls--
 }
 
-func testNewGrant(tokenURL string, credRequest *CredentialsRequest, nowFn func() time.Time) Grant {
-	grant := NewGrant(tokenURL, &testCredRequest)
-	grant.(*grantRequest).nowFn = nowFn
-	return grant
-}
-
 func testNowFn(offset int64) func() time.Time {
 	return func() time.Time {
 		return time.Unix(offset, 0)
@@ -109,7 +103,8 @@ func TestGrantAPI(t *testing.T) {
 		server := newTestGrantServer(t, 1)
 		defer server.Close()
 
-		grant := testNewGrant(server.TokenURL(), &testCredRequest, testNowFn(1))
+		grant := NewGrant(server.TokenURL(), testCredRequest)
+		grant.nowFn = testNowFn(1)
 
 		token, err := grant.GetAccessToken()
 		if err != nil {
@@ -119,12 +114,8 @@ func TestGrantAPI(t *testing.T) {
 			t.Fatalf("wrong access token got: %s expected: %s", token, expectedGrant.AccessToken)
 		}
 
-		req, ok := grant.(*grantRequest)
-		if !ok {
-			t.Fatal("cast to *grantRequest")
-		}
-		if !cmp.Equal(*req.grant, expectedGrant) {
-			t.Fatalf("wrong grant got: %+v expected: %+v", *req.grant, expectedGrant)
+		if !cmp.Equal(*grant.grant, expectedGrant) {
+			t.Fatalf("wrong grant got: %+v expected: %+v", *grant.grant, expectedGrant)
 		}
 	})
 
@@ -132,14 +123,11 @@ func TestGrantAPI(t *testing.T) {
 		server := newTestGrantServer(t, 1)
 		defer server.Close()
 
-		grant := testNewGrant(server.TokenURL(), &testCredRequest, testNowFn(3))
-		req, ok := grant.(*grantRequest)
-		if !ok {
-			t.Fatal("cast to *grantRequest")
-		}
+		grant := NewGrant(server.TokenURL(), testCredRequest)
+		grant.nowFn = testNowFn(3)
 
-		req.grant = &expectedGrant
-		req.issuedAt = time.Unix(1, 0)
+		grant.grant = &expectedGrant
+		grant.issuedAt = time.Unix(1, 0)
 
 		token, err := grant.GetAccessToken()
 		if err != nil {
@@ -150,8 +138,8 @@ func TestGrantAPI(t *testing.T) {
 		}
 
 		expectedTime := time.Unix(3, 0)
-		if !req.issuedAt.Equal(expectedTime) {
-			t.Fatalf("wrong issue time got: %s, expected: %s", req.issuedAt.Format(time.RFC3339), expectedTime.Format(time.RFC3339))
+		if !grant.issuedAt.Equal(expectedTime) {
+			t.Fatalf("wrong issue time got: %s, expected: %s", grant.issuedAt.Format(time.RFC3339), expectedTime.Format(time.RFC3339))
 		}
 	})
 
@@ -159,14 +147,10 @@ func TestGrantAPI(t *testing.T) {
 		server := newTestGrantServer(t, 0) // <-- server shouldn't get called!
 		defer server.Close()
 
-		grant := testNewGrant(server.TokenURL(), &testCredRequest, testNowFn(1))
-		req, ok := grant.(*grantRequest)
-		if !ok {
-			t.Fatal("cast to *grantRequest")
-		}
-
-		req.grant = &expectedGrant
-		req.issuedAt = time.Unix(1, 0)
+		grant := NewGrant(server.TokenURL(), testCredRequest)
+		grant.nowFn = testNowFn(1)
+		grant.grant = &expectedGrant
+		grant.issuedAt = time.Unix(1, 0)
 
 		token, err := grant.GetAccessToken()
 		if err != nil {
